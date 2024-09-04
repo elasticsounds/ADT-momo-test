@@ -1,0 +1,81 @@
+<!-- Smart Utility Sidebar -->
+<aside id="sidebar" aria-hidden="true" role="complementary"
+    class="w-1/4 bg-gray-200 p-4 fixed right-0 top-0 bottom-0 transition-transform transform translate-x-full hidden">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold mb-4" data-id="sidebar-title"><i class="fas fa-universal-access mr-2"></i>Universal
+            AI</h2>
+        <button id="close-sidebar" aria-label="Close the sidebar" type="button" class="text-gray-700 text-xl"><i
+                class="fas fa-close"></i></button>
+    </div>
+    <div class="flex justify-between items-left mb-4">
+        <h3 class="text-xl text-left m-4 sidebar-item" id="language-label" data-id="language-label">Language</h3>
+        <select data-id="language-dropdown" id="language-dropdown" aria-labelledby="language-label"
+            class="ml-4 px-4 py-2 bg-white text-gray-800 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50">
+        </select>
+    </div>
+
+    <div class="flex justify-between items-left mb-4">
+        <h3 class="text-xl text-left m-4 sidebar-item" id="easy-read-label" data-id="easy-read-label">Easy Read</h3>
+        <button id="toggle-easy-read-button" type="button" class="toggle-button text-2xl px-4 py-2 bg-black text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            <i id="toggle-easy-read-icon" class="text-2xl fas fa-toggle-off"></i>
+        </button>
+    </div>
+
+    <div class="flex justify-between items-left mb-4">
+        <h3 class="text-xl text-left m-4 sidebar-item" id="tts-label" data-id="tts-label">Text to speech</h3>
+        <button id="play-pause-button" aria-labelledby="tts-label" aria-pressed="false"
+            class="px-4 py-2 bg-black text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"><i
+                id="play-pause-icon" class="fas fa-play"></i>
+        </button>
+    </div>
+    
+    <div class="flex justify-between items-left mb-4">
+        <h3 class="text-xl text-left m-4 sidebar-item" id="eli5-label" data-id="eli5-label">Explain to me</h3>
+        <button id="toggle-eli5-mode-button" aria-labelledby="eli5-label" aria-pressed="false"
+            class="text-2xl px-4 py-2 bg-black text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            type="button"><i id="toggle-eli5-icon" class="text-2xl fas fa-toggle-off"></i></button>
+    </div>
+    <div class="text-left m-4" id="eli5-content" data-id="eli5-content-lang">Tap on anything to explain it to me.</div>
+</aside>
+
+<!-- Floating Button to open AI Sidebar -->
+<button id="open-sidebar" aria-label="Smart Utility Sidebar" aria-expanded="false"
+    class="fixed bottom-20 right-4 bg-black text-white p-1 rounded-full shadow-md">
+    <i class="fas fa-universal-access text-3xl"></i>
+</button>
+
+<!-- Pop-up toast -->
+<div id="toast" class="fixed bottom-20 right-5 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg hidden" role="alert">
+    <p>Well done</p>
+</div>
+
+<!-- The Content Index menu bar -->
+<footer
+    class="fixed bottom-0 left-0 right-0 bg-white shadow-lg py-3 flex justify-between items-center px-5 border-t border-gray-300">
+    <div>
+        <button id="nav-popup" aria-controls="navPopup" aria-expanded="false" aria-label="Content Index Menu"
+            class="nav__toggle px-4 py-2 bg-white text-gray-800 rounded-lg shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50"
+            type="button">
+            <i aria-hidden="true" class="fas fa-bars"></i>
+        </button>
+    </div>
+
+    <!-- back, forward and submit buttons -->
+    <div aria-label="page-navigation">
+        <button id="back-button" aria-label="Previous page" class="text-2xl no-underline text-blue-600 p-1"
+            type="button"><i class="fas fa-chevron-left"></i></button>
+        <span id="page-section-id" class="align-text-bottom no-underline text-blue-600 p-1">Page Number</span>
+        <button id="forward-button" aria-label="Next page" class="text-2xl no-underline text-blue-600 p-1"
+            type="button"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <div>
+        <button aria-label="Submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            id="submit-button" type="button" data-id="submit-text">Submit</button>
+    </div>
+</footer>
+
+</body>
+
+</html>
