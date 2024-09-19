@@ -1,14 +1,8 @@
-const PLACEHOLDER_TITLE = "Accessible Digital Textbook"
 document.addEventListener("DOMContentLoaded", function () {
-    // Set the language on page load to currentLanguage cookie or the html lang attribute.
-    let languageCookie = getCookie("currentLanguage");
-    if (!languageCookie) {
-        currentLanguage = document
-            .getElementsByTagName("html")[0]
-            .getAttribute("lang");
-    } else {
-        currentLanguage = languageCookie;
-    }
+    // Set the language
+    currentLanguage = document
+        .getElementsByTagName("html")[0]
+        .getAttribute("lang");
 
     // Fetch interface.html and nav.html, and activity.js concurrently
     Promise.all([
@@ -17,22 +11,20 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch("assets/activity.js").then((response) => response.text()),
         fetch("assets/config.html").then((response) => response.text()),
     ])
-        .then(async ([interfaceHTML, navHTML, activityJS, configHTML]) => {
+        .then(([interfaceHTML, navHTML, activityJS, configHTML]) => {
             // Inject fetched HTML into respective containers
             document.getElementById("interface-container").innerHTML =
                 interfaceHTML;
             document.getElementById("nav-container").innerHTML = navHTML;
-            const parser = new DOMParser();
-            const configDoc = parser.parseFromString(configHTML, "text/html");
-            const newTitle = configDoc.querySelector("title").textContent;
-            const newAvailableLanguages = configDoc
-                .querySelector('meta[name="available-languages"]')
-                .getAttribute("content");
+            const parser = new DOMParser()
+            const configDoc = parser.parseFromString(configHTML, 'text/html');
+            const newTitle = configDoc.querySelector('title').textContent;
+            const newAvailableLanguages = configDoc.querySelector('meta[name="available-languages"]').getAttribute('content');
 
             // Add the new title.
-            if (newTitle !== PLACEHOLDER_TITLE) {
-                document.title = newTitle;
-            }
+            const title = document.createElement("title");
+            title.textContent = newTitle;
+            document.head.appendChild(title);
             // Add the new available languages.
             const availableLanguages = document.createElement("meta");
             availableLanguages.name = "available-languages";
@@ -60,47 +52,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 dropdown.appendChild(option);
             });
 
-            // Manage sidebar state:
-            const sidebarState = getCookie("sidebarState" || "closed");
-            const sidebar = document.getElementById("sidebar");
-            const openSidebar = document.getElementById("open-sidebar");
-            const sideBarActive = sidebarState === "open";
-
-            // Updated to target <main> tag as content id was glitching.
-            if (sideBarActive) {
-                sidebar.classList.remove("translate-x-full");
-                document
-                    .getElementsByTagName("main")[0]
-                    .classList.add("lg:ml-32");
-                document
-                    .getElementsByTagName("main")[0]
-                    .classList.remove("lg:mx-auto");
-            } else {
-                sidebar.classList.add("translate-x-full");
-                document
-                    .getElementsByTagName("main")[0]
-                    .classList.remove("lg:ml-32");
-                document
-                    .getElementsByTagName("main")[0]
-                    .classList.add("lg:mx-auto");
-            }
             // Hide specific elements initially for accessibility
-            const elements = [
+            const elementsToHide = [
                 "close-sidebar",
                 "language-dropdown",
+                "play-pause-button",
                 "toggle-eli5-mode-button",
             ];
-            elements.forEach((id) => {
+            elementsToHide.forEach((id) => {
                 const element = document.getElementById(id);
-                if (sideBarActive) {
-                    element.setAttribute("aria-hidden", "false");
-                    element.removeAttribute("tabindex");
-                    openSidebar.setAttribute("aria-expanded", "true");
-                } else {
-                    element.setAttribute("aria-hidden", "true");
-                    element.setAttribute("tabindex", "-1");
-                    openSidebar.setAttribute("aria-expanded", "false");
-                }
+                element.setAttribute("aria-hidden", "true");
+                element.setAttribute("tabindex", "-1");
             });
 
             // Add event listeners to various UI elements
@@ -119,34 +81,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 .getElementById("language-dropdown")
                 .addEventListener("change", switchLanguage);
             document
-                .getElementById("toggle-easy-read-button")
-                .addEventListener("click", toggleEasyReadMode);
-
-            document
                 .getElementById("play-pause-button")
                 .addEventListener("click", togglePlayPause);
-            document
-                .getElementById("toggle-read-aloud")
-                .addEventListener("click", toggleReadAloud);
-            document
-                .getElementById("audio-previous")
-                .addEventListener("click", playPreviousAudio);
-            document
-                .getElementById("audio-next")
-                .addEventListener("click", playNextAudio);
-            document
-                .getElementById("play-bar-settings-toggle")
-                .addEventListener("click", togglePlayBarSettings);
-            document
-                .getElementById("read-aloud-speed")
-                .addEventListener("click", togglePlayBarSettings);
-
-            // Add event listeners to all buttons with the class 'read-aloud-change-speed'
-            document
-                .querySelectorAll(".read-aloud-change-speed")
-                .forEach((button) => {
-                    button.addEventListener("click", changeAudioSpeed);
-                });
 
             // set the language dropdown to the current language
             document.getElementById("language-dropdown").value =
@@ -159,9 +95,9 @@ document.addEventListener("DOMContentLoaded", function () {
             document
                 .getElementById("forward-button")
                 .addEventListener("click", nextPage);
-            // document
-            //   .getElementById("submit-button")
-            //   .addEventListener("click", validateInputs);
+            document
+                .getElementById("submit-button")
+                .addEventListener("click", validateInputs);
 
             // left nav bar
             document
@@ -173,6 +109,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const navToggle = document.querySelector(".nav__toggle");
             const navLinks = document.querySelectorAll(".nav__list-link");
             const navPopup = document.getElementById("navPopup");
+
+            // interactive elements
+            /*document.querySelectorAll('[data-activity-item]').forEach(element => {
+            element.addEventListener('click', selectAnswer());
+        })*/
 
             if (navToggle) {
                 navToggle.addEventListener("click", toggleNav);
@@ -194,7 +135,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 pageSectionMetaTag.getAttribute("content");
 
             // Fetch translations and set up click handlers for elements with data-id
-            await fetchTranslations();
+            fetchTranslations();
             document.querySelectorAll("[data-id]").forEach((element) => {
                 element.addEventListener("click", handleElementClick);
             });
@@ -207,9 +148,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 navPopup.classList.remove("hidden");
                 document.getElementById("sidebar").classList.remove("hidden");
             }, 100); // Adjust the timeout duration as needed
-        })
-        .then(() => {
-            MathJax.typeset();
         })
         .catch((error) => {
             console.error("Error loading HTML:", error);
@@ -260,8 +198,8 @@ function handleKeyboardShortcuts(event) {
             case "ArrowLeft":
                 previousPage();
                 break;
-        } // end switch
-    } // end if
+        }// end switch
+    }// end if       
 }
 
 let translations = {};
@@ -275,20 +213,8 @@ let eli5Active = false;
 let eli5Element = null;
 let eli5Audio = null;
 let eli5Mode = false;
-let readAloudMode = false;
 let sideBarActive = false;
 let easyReadMode = false;
-let audioSpeed = 1;
-
-// Get the base path of the current URL
-const currentPath = window.location.pathname;
-const basePath = currentPath.substring(0, currentPath.lastIndexOf("/") + 1);
-
-// Check if sideBarActive state has been pulled from the cookie
-const sidebarStateCookie = getCookie("sidebarState");
-if (sidebarStateCookie) {
-    sideBarActive = sidebarStateCookie === "open";
-}
 
 // Toggle the right nav bar (Smart Utility Sidebar)
 function toggleSidebar() {
@@ -297,23 +223,21 @@ function toggleSidebar() {
     const sidebar = document.getElementById("sidebar");
     const openSidebar = document.getElementById("open-sidebar");
     sideBarActive = !sideBarActive;
-
-    // Set the sidebar state in the cookie referring to the base path
-    setCookie("sidebarState", sideBarActive ? "open" : "closed", 7, basePath);
     sidebar.classList.toggle("translate-x-full");
 
     //Shift content to left when sidebar is open
     document
-        .getElementsByTagName("main")[0] //Update to use main tag vs id="content"
+        .getElementById("content")
         .classList.toggle("lg:ml-32", sideBarActive);
     document
-        .getElementsByTagName("main")[0] //Update to use main tag vs id="content"
+        .getElementById("content")
         .classList.toggle("lg:mx-auto", !sideBarActive);
 
     // Manage focus and accessibility attributes based on sidebar state
     const elements = [
         "close-sidebar",
         "language-dropdown",
+        "play-pause-button",
         "toggle-eli5-mode-button",
     ];
     elements.forEach((id) => {
@@ -335,11 +259,22 @@ function toggleSidebar() {
     });
 }
 
+function toggleEli5Mode() {
+    eli5Mode = !eli5Mode;
+    document
+        .getElementById("toggle-eli5-icon")
+        .classList.toggle("fa-toggle-on", eli5Mode);
+    document
+        .getElementById("toggle-eli5-icon")
+        .classList.toggle("fa-toggle-off", !eli5Mode);
+    stopAudio();
+    unhighlightAllElements();
+}
+
 // Language functionality
 function switchLanguage() {
     stopAudio();
     currentLanguage = document.getElementById("language-dropdown").value;
-    setCookie("currentLanguage", currentLanguage, 7, basePath);
     fetchTranslations();
     document
         .getElementsByTagName("html")[0]
@@ -378,9 +313,6 @@ async function fetchTranslations() {
         gatherAudioElements(); // Ensure audio elements are gathered after translations are applied
     } catch (error) {
         console.error("Error loading translations:", error);
-    } finally {
-        // Update the MathJax typesetting after translations are applied.
-        MathJax.typeset();
     }
 }
 
@@ -447,9 +379,7 @@ function gatherAudioElements() {
 }
 
 function playAudioSequentially() {
-    if (currentIndex < 0) {
-        currentIndex = 0;
-    } else if (currentIndex >= audioElements.length) {
+    if (currentIndex >= audioElements.length) {
         stopAudio();
         return;
     }
@@ -458,8 +388,6 @@ function playAudioSequentially() {
     highlightElement(element);
 
     currentAudio = new Audio(audioSrc);
-    // Set the playback rate of the audio
-    currentAudio.playbackRate = parseFloat(audioSpeed);
     currentAudio.play();
 
     currentAudio.onended = () => {
@@ -473,24 +401,6 @@ function playAudioSequentially() {
         currentIndex++;
         playAudioSequentially();
     };
-}
-
-function playPreviousAudio() {
-    currentIndex -= 1;
-    stopAudio();
-    unhighlightAllElements();
-    isPlaying = true;
-    setPlayPauseIcon();
-    playAudioSequentially();
-}
-
-function playNextAudio() {
-    currentIndex += 1;
-    stopAudio();
-    unhighlightAllElements();
-    isPlaying = true;
-    setPlayPauseIcon();
-    playAudioSequentially();
 }
 
 function togglePlayPause() {
@@ -515,81 +425,13 @@ function togglePlayPause() {
     setPlayPauseIcon();
 }
 
-function toggleReadAloud() {
-    readAloudMode = !readAloudMode;
-    setCookie("readAloudMode", readAloudMode);
-    document
-        .getElementById("toggle-read-aloud-icon")
-        .classList.toggle("fa-toggle-on", readAloudMode);
-    document
-        .getElementById("toggle-read-aloud-icon")
-        .classList.toggle("fa-toggle-off", !readAloudMode);
-    togglePlayBar();
-}
-
-function toggleEli5Mode() {
-    eli5Mode = !eli5Mode;
-    document
-        .getElementById("toggle-eli5-icon")
-        .classList.toggle("fa-toggle-on", eli5Mode);
-    document
-        .getElementById("toggle-eli5-icon")
-        .classList.toggle("fa-toggle-off", !eli5Mode);
-    togglePlayBar();
-    stopAudio();
-    unhighlightAllElements();
-}
-
-function togglePlayBar() {
-    if (readAloudMode || eli5Mode) {
-        document.getElementById("play-bar").classList.remove("hidden");
-    } else {
-        document.getElementById("play-bar").classList.add("hidden");
-        stopAudio();
-        unhighlightAllElements();
-    }
-}
-
-function togglePlayBarSettings() {
-    let readAloudSettings = document.getElementById("read-aloud-settings");
-    if (readAloudSettings.classList.contains("opacity-0")) {
-        readAloudSettings.classList.add(
-            "opacity-100",
-            "pointer-events-auto",
-            "h-auto"
-        );
-        readAloudSettings.classList.remove(
-            "opacity-0",
-            "pointer-events-none",
-            "h-0"
-        );
-    } else {
-        readAloudSettings.classList.remove(
-            "opacity-100",
-            "pointer-events-auto",
-            "h-auto"
-        );
-        readAloudSettings.classList.add(
-            "h-0",
-            "opacity-0",
-            "pointer-events-none"
-        );
-    }
-}
-
 function setPlayPauseIcon() {
     if (isPlaying) {
-        document.getElementById("read-aloud-play-icon").classList.add("hidden");
-        document
-            .getElementById("read-aloud-pause-icon")
-            .classList.remove("hidden");
+        document.getElementById("play-pause-icon").classList.remove("fa-play");
+        document.getElementById("play-pause-icon").classList.add("fa-pause");
     } else {
-        document
-            .getElementById("read-aloud-play-icon")
-            .classList.remove("hidden");
-        document
-            .getElementById("read-aloud-pause-icon")
-            .classList.add("hidden");
+        document.getElementById("play-pause-icon").classList.remove("fa-pause");
+        document.getElementById("play-pause-icon").classList.add("fa-play");
     }
 }
 
@@ -604,40 +446,6 @@ function stopAudio() {
     }
     isPlaying = false;
     setPlayPauseIcon();
-}
-
-function changeAudioSpeed(event) {
-    // Get the button that was clicked
-    let button = event.target;
-
-    // Extract the speed value from the class
-    let speedClass = Array.from(button.classList).find((cls) =>
-        cls.startsWith("speed-")
-    );
-    audioSpeed = speedClass.split("-").slice(1).join(".");
-    document.getElementById("read-aloud-speed").textContent = audioSpeed + "x";
-
-    // Check if currentAudio or eli5Audio is not empty
-    if (currentAudio || eli5Audio) {
-        // Change the playBackRate to the current speed
-        if (currentAudio) {
-            currentAudio.playbackRate = audioSpeed;
-        }
-        if (eli5Audio) {
-            eli5Audio.playbackRate = audioSpeed;
-        }
-    }
-
-    // Update button styles
-    document.querySelectorAll(".read-aloud-change-speed").forEach((btn) => {
-        if (btn === button) {
-            btn.classList.remove("bg-black", "text-gray-300");
-            btn.classList.add("bg-white", "text-black");
-        } else {
-            btn.classList.remove("bg-white", "text-black");
-            btn.classList.add("bg-black", "text-gray-300");
-        }
-    });
 }
 
 // Highlight text while audio is playing
@@ -678,87 +486,77 @@ function unhighlightAllElements() {
 }
 
 function handleElementClick(event) {
-    if (readAloudMode || eli5Mode) {
-        const element = event.currentTarget;
-        const dataId = element.getAttribute("data-id");
+    const element = event.currentTarget;
+    const dataId = element.getAttribute("data-id");
 
-        document.querySelectorAll(".outline-dotted").forEach((el) => {
-            if (el !== element && !element.contains(el)) {
-                unhighlightElement(el);
-            }
-        });
+    document.querySelectorAll(".outline-dotted").forEach((el) => {
+        if (el !== element && !element.contains(el)) {
+            unhighlightElement(el);
+        }
+    });
 
-        if (eli5Mode) {
-            if (dataId.startsWith("sectioneli5")) {
-                const eli5Text = translations[dataId];
-                const eli5AudioSrc = audioFiles[dataId];
+    if (eli5Mode) {
+        if (dataId.startsWith("sectioneli5")) {
+            const eli5Text = translations[dataId];
+            const eli5AudioSrc = audioFiles[dataId];
 
-                document.getElementById("eli5-content").textContent = eli5Text;
-                highlightElement(element);
+            document.getElementById("eli5-content").textContent = eli5Text;
+            highlightElement(element);
 
-                if (eli5AudioSrc) {
-                    stopAudio();
-                    eli5Active = true;
-                    eli5Audio = new Audio(eli5AudioSrc);
-                    eli5Audio.playbackRate = parseFloat(audioSpeed);
-                    eli5Audio.play();
+            if (eli5AudioSrc) {
+                stopAudio();
+                eli5Active = true;
+                eli5Audio = new Audio(eli5AudioSrc);
+                eli5Audio.play();
 
-                    eli5Audio.onended = () => {
-                        unhighlightElement(
-                            document.getElementById("eli5-content")
-                        );
-                        eli5Active = false;
-                        isPlaying = false;
-                        setPlayPauseIcon();
-                    };
+                eli5Audio.onended = () => {
+                    unhighlightElement(document.getElementById("eli5-content"));
+                    eli5Active = false;
+                    isPlaying = false;
+                    setPlayPauseIcon();
+                };
 
-                    eli5Audio.onerror = () => {
-                        unhighlightElement(
-                            document.getElementById("eli5-content")
-                        );
-                        eli5Active = false;
-                        isPlaying = false;
-                        setPlayPauseIcon();
-                    };
+                eli5Audio.onerror = () => {
+                    unhighlightElement(document.getElementById("eli5-content"));
+                    eli5Active = false;
+                    isPlaying = false;
+                    setPlayPauseIcon();
+                };
 
-                    isPlaying = true;
-                }
-            }
-        } else if (readAloudMode) {
-            if (!eli5Mode && !dataId.startsWith("sectioneli5")) {
-                // Handle normal audio elements
-                const audioSrc = audioFiles[dataId];
-                if (audioSrc) {
-                    stopAudio();
-                    currentAudio = new Audio(audioSrc);
-                    highlightElement(element);
-                    currentAudio.playbackRate = parseFloat(audioSpeed);
-                    currentAudio.play();
-
-                    currentAudio.onended = () => {
-                        unhighlightElement(element);
-                        currentIndex =
-                            audioElements.findIndex(
-                                (item) => item.id === dataId
-                            ) + 1;
-                        playAudioSequentially();
-                    };
-
-                    currentAudio.onerror = () => {
-                        unhighlightElement(element);
-                        currentIndex =
-                            audioElements.findIndex(
-                                (item) => item.id === dataId
-                            ) + 1;
-                        playAudioSequentially();
-                    };
-
-                    isPlaying = true;
-                }
+                isPlaying = true;
             }
         }
-        setPlayPauseIcon();
+    } else {
+        if (!eli5Mode && !dataId.startsWith("sectioneli5")) {
+            // Handle normal audio elements
+            const audioSrc = audioFiles[dataId];
+            if (audioSrc) {
+                stopAudio();
+                currentAudio = new Audio(audioSrc);
+                highlightElement(element);
+                currentAudio.play();
+
+                currentAudio.onended = () => {
+                    unhighlightElement(element);
+                    currentIndex =
+                        audioElements.findIndex((item) => item.id === dataId) +
+                        1;
+                    playAudioSequentially();
+                };
+
+                currentAudio.onerror = () => {
+                    unhighlightElement(element);
+                    currentIndex =
+                        audioElements.findIndex((item) => item.id === dataId) +
+                        1;
+                    playAudioSequentially();
+                };
+
+                isPlaying = true;
+            }
+        }
     }
+    setPlayPauseIcon();
 }
 
 // Toggle the left nav bar, Toggle Menu
@@ -837,31 +635,4 @@ function toggleEasyReadMode() {
     currentLanguage = document.getElementById("language-dropdown").value;
     fetchTranslations();
     gatherAudioElements(); // Call this after fetching translations to update audio elements
-}
-
-// Functionalities to store variables in the cookies
-function setCookie(name, value, days = 7, path = "/") {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=" + path;
-}
-
-function getCookie(name) {
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(";");
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === " ") c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0)
-            return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-function eraseCookie(name) {
-    document.cookie = name + "=; Max-Age=-99999999; path=" + path;
 }

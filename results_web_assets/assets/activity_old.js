@@ -3,7 +3,6 @@ const ActivityTypes = Object.freeze({
   FILL_IN_THE_BLANK: "activity_fill_in_the_blank",
   SORTING: "activity_sorting",
   OPEN_ENDED_ANSWER: "activity_open_ended_answer",
-  MATCHING: "activity_matching",
 });
 
 function prepareActivity() {
@@ -42,12 +41,6 @@ function prepareActivity() {
           prepareSortingActivity(section);
           submitButton.addEventListener("click", () =>
             validateInputs(ActivityTypes.SORTING)
-          );
-          break;
-        case ActivityTypes.MATCHING:
-          prepareMatchingActivity(section);
-          submitButton.addEventListener("click", () =>
-            validateInputs(ActivityTypes.MATCHING)
           );
           break;
         default:
@@ -102,9 +95,6 @@ function validateInputs(activityType) {
       break;
     case ActivityTypes.SORTING:
       checkSorting();
-      break;
-    case ActivityTypes.MATCHING:
-      checkMatching();
       break;
     default:
       console.error("Unknown validation type:", activityType);
@@ -284,89 +274,76 @@ function updateSubmitButtonAndToast(
 }
 
 // SORTING ACTIVITY
+
 function prepareSortingActivity(section) {
-  const wordCards = document.querySelectorAll(".word-card");
-  wordCards.forEach((wordCard) => {
-    wordCard.addEventListener("click", () => selectWordSort(wordCard));
-    wordCard.addEventListener("dragstart", dragSort);
+  const wordList = document.getElementById("word-list");
+  let correctCount = "";
+  let incorrectCount = "";
+  let currentWord = "";
+  words.forEach((word) => {
+    const wordCard = document.createElement("div");
+    wordCard.textContent = word;
+    wordCard.className =
+      "bg-yellow-100 border border-gray-300 shadow-lg p-2 m-1 rounded word-card";
+    wordCard.draggable = true;
+    wordCard.addEventListener("click", () => selectWord(wordCard));
+    wordCard.addEventListener("dragstart", drag);
     wordCard.addEventListener("mousedown", () => highlightBoxes(true));
     wordCard.addEventListener("mouseup", () => highlightBoxes(false));
-    wordCard.classList.add(
-      "cursor-pointer",
-      "transition",
-      "duration-300",
-      "hover:bg-yellow-300",
-      "transform",
-      "hover:scale-105"
-    );
+    const naturalCategory = document.getElementById("natural-category");
+    const artificialCategory = document.getElementById("artificial-category");
+    naturalCategory.addEventListener("dragover", allowDrop);
+    naturalCategory.addEventListener("drop", drop);
+    naturalCategory.addEventListener("click", () => placeWord("natural"));
+    artificialCategory.addEventListener("dragover", allowDrop);
+    artificialCategory.addEventListener("drop", drop);
+    artificialCategory.addEventListener("click", () => placeWord("artificial"));
+    document
+      .getElementById("feedback")
+      .addEventListener("click", resetActivity);
+    wordList.appendChild(wordCard);
   });
 
-  const categories = document.querySelectorAll(".category");
-  categories.forEach((category) => {
-    category.addEventListener("dragover", allowDrop);
-    category.addEventListener("drop", dropSort);
-    category.addEventListener("click", () => placeWord(category.id));
-  });
-
-  document.getElementById("feedback").addEventListener("click", resetActivity);
+  document
+    .getElementById("submit-button")
+    .addEventListener("click", checkSorting);
 }
 
 function highlightBoxes(state) {
-  const categories = document.querySelectorAll(".category");
-  categories.forEach((category) => {
-    if (state) {
-      category.classList.add("bg-blue-100");
-
-      category.classList.add("border-blue-400");
-    } else {
-      category.classList.remove("bg-blue-100");
-      category.classList.remove("border-blue-400");
-    }
-  });
+  const naturalCategory = document.getElementById("natural-category");
+  const artificialCategory = document.getElementById("artificial-category");
+  if (state) {
+    naturalCategory.classList.add("highlight");
+    artificialCategory.classList.add("highlight");
+  } else {
+    naturalCategory.classList.remove("highlight");
+    artificialCategory.classList.remove("highlight");
+  }
 }
 
-function selectWordSort(wordCard) {
+function selectWord(wordCard) {
   if (wordCard.classList.contains("bg-gray-300")) return;
 
   document
     .querySelectorAll(".word-card")
-    .forEach((card) => card.classList.remove("border-blue-700"));
-  wordCard.classList.add("border-blue-700", "border-2", "box-border");
-
+    .forEach((card) => card.classList.remove("bg-blue-300"));
+  wordCard.classList.add("bg-blue-300");
   currentWord = wordCard.textContent;
 
   highlightBoxes(true);
 }
 
 function placeWord(category) {
-  if (!currentWord) {
-    console.log("No word selected.");
-    return;
-  }
+  if (!currentWord) return;
 
-  // Correct query to target the div with the exact data-activity-category value
-  const categoryDiv = document.querySelector(
-    `div[data-activity-category="${category}"]`
-  );
-  const listElement = categoryDiv
-    ? categoryDiv.querySelector(".word-list")
-    : null;
-
-  if (!listElement) {
-    console.error(
-      `Category "${category}" not found or no word list available.`
-    );
-    return;
-  }
-
+  const listId = category === "natural" ? "natural-list" : "artificial-list";
   const listItem = document.createElement("li");
   listItem.textContent = currentWord;
   listItem.className = "bg-gray-200 p-2 m-1 rounded word-card";
-  listItem.setAttribute("data-activity-category", category);
+  listItem.setAttribute("data-category", category);
   listItem.addEventListener("click", () => removeWord(listItem));
-  listElement.appendChild(listItem);
+  document.getElementById(listId).appendChild(listItem);
 
-  // Find the word card and apply styles
   const wordCard = Array.from(document.querySelectorAll(".word-card")).find(
     (card) => card.textContent === currentWord
   );
@@ -374,11 +351,8 @@ function placeWord(category) {
     wordCard.classList.add(
       "bg-gray-300",
       "cursor-not-allowed",
-      "text-gray-400",
-      "hover:bg-gray-300",
-      "hover:scale-100"
+      "text-gray-400"
     );
-    wordCard.style.border = "none";
     wordCard.classList.remove("selected", "shadow-lg");
   }
 
@@ -396,9 +370,7 @@ function removeWord(listItem) {
       "bg-gray-300",
       "cursor-not-allowed",
       "bg-blue-300",
-      "text-gray-400",
-      "hover:bg-gray-300",
-      "hover:scale-100"
+      "text-gray-400"
     );
     wordCard.classList.add("bg-yellow-200");
   }
@@ -410,47 +382,39 @@ function checkSorting() {
   let correctCount = 0;
   let incorrectCount = 0;
 
-  // Declare the wordCards array by iterating over all elements with the class 'word-card'
-  const wordCards = Array.from(document.querySelectorAll(".word-card"));
-
-  wordCards.forEach((wordCard) => {
-    const word = wordCard.textContent.trim();
-    const wordKey = wordCard.getAttribute("data-activity-item");
-    const correctCategory = correctAnswers[wordKey];
-    const listItems = document.querySelectorAll(`li[data-activity-category]`);
+  words.forEach((word) => {
+    const correctCategory = correctAnswers[word];
+    const listItems = document.querySelectorAll(`li[data-category]`);
 
     listItems.forEach((item) => {
       if (item.textContent === word) {
-        if (
-          item.getAttribute("data-activity-category").split("-")[0] ===
-          correctCategory
-        ) {
-          item.classList.add("bg-green-200");
-          item.classList.remove("bg-red-200");
+        if (item.getAttribute("data-category") === correctCategory) {
+          item.classList.add("correct");
+          item.classList.remove("incorrect");
           item.innerHTML += ' <i class="fas fa-check"></i>';
           correctCount++;
         } else {
-          item.classList.add("bg-red-200");
-          item.classList.remove("bg-green-200");
+          item.classList.add("incorrect");
+          item.classList.remove("correct");
           item.innerHTML += ' <i class="fas fa-times"></i>';
           incorrectCount++;
         }
       }
     });
   });
-  const allCorrect = correctCount === wordCards.length;
+
+  const allCorrect = correctCount === words.length;
 
   feedbackElement.textContent = `You have ${correctCount} correct answers and ${incorrectCount} incorrect answers. Try Again?`;
   feedbackElement.classList.remove("text-red-500", "text-green-500");
   feedbackElement.classList.add(
-    correctCount === wordCards.length ? "text-green-500" : "text-red-500"
+    correctCount === words.length ? "text-green-500" : "text-red-500"
   );
 
   // Update the submit button and toast based on whether all answers are correct
   updateSubmitButtonAndToast(
     allCorrect,
-    allCorrect ? "Next Activity" : "Retry",
-    ActivityTypes.SORTING
+    allCorrect ? "Next Activity" : "Retry"
   );
 }
 
@@ -462,9 +426,7 @@ function resetActivity() {
       "bg-gray-300",
       "cursor-not-allowed",
       "bg-blue-300",
-      "text-gray-400",
-      "hover:bg-gray-300",
-      "hover:scale-100"
+      "text-gray-400"
     );
     card.classList.add("bg-yellow-100", "shadow-lg");
   });
@@ -477,174 +439,20 @@ function allowDrop(event) {
   event.preventDefault();
 }
 
-function dragSort(event) {
+function drag(event) {
   event.dataTransfer.setData("text", event.target.textContent);
   event.target.classList.add("selected");
   highlightBoxes(true);
 }
 
-function dropSort(event) {
-  event.preventDefault();
-  const data = event.dataTransfer.getData("text");
-  currentWord = data;
-  const category = event.target.closest(".category").id;
-  const categoryName = category;
-  placeWord(categoryName);
-  highlightBoxes(false);
-}
-
-//MATCHING ACTIVITY
-
-function prepareMatchingActivity(section) {
-  // Add event listeners to word buttons
-  const wordButtons = document.querySelectorAll(".activity-item");
-  wordButtons.forEach((button) => {
-    button.addEventListener("click", () => selectWord(button));
-    button.addEventListener("dragstart", (event) => drag(event));
-    button.style.cursor = "pointer"; // Change cursor to hand
-  });
-
-  // Add event listeners to dropzones
-  const dropzones = document.querySelectorAll(".dropzone");
-  dropzones.forEach((dropzone) => {
-    dropzone.addEventListener("click", () => dropWord(dropzone.id));
-    dropzone.addEventListener("drop", (event) => drop(event));
-    dropzone.addEventListener("dragover", (event) => allowDrop(event));
-    dropzone.style.cursor = "pointer"; // Change cursor to hand
-  });
-}
-
-let selectedWord = null;
-
-// Duplicate function is commented
-// function allowDrop(event) {
-//   event.preventDefault();
-// }
-
-function drag(event) {
-  event.dataTransfer.setData(
-    "text",
-    event.target.getAttribute("data-activity-item")
-  );
-}
-
 function drop(event) {
   event.preventDefault();
   const data = event.dataTransfer.getData("text");
-  const target = event.currentTarget.querySelector("div[role='region']");
-  const wordElement = document.querySelector(
-    `.activity-item[data-activity-item='${data}']`
+  currentWord = data;
+  placeWord(
+    event.target.closest(".category").id.includes("natural")
+      ? "natural"
+      : "artificial"
   );
-  const existingWord = target.firstElementChild;
-
-  // Check if the dropzone already has a word and return it to the original list
-  if (existingWord) {
-    // Move the existing word back to the original word list or swap positions
-    const originalParent = wordElement.parentElement;
-
-    // Swap the selected word with the existing word
-    originalParent.appendChild(existingWord);
-  }
-
-  target.appendChild(wordElement);
-
-  // Reset the selected word highlight
-  if (selectedWord) {
-    selectedWord.classList.remove("border-4", "border-blue-500");
-    selectedWord = null;
-  }
-}
-
-function selectWord(button) {
-  // If a word is already selected, deselect it
-  if (selectedWord) {
-    selectedWord.classList.remove("border-4", "border-blue-500");
-  }
-
-  // Mark the current word as selected
-  button.classList.add("border-4", "border-blue-500");
-  selectedWord = button;
-}
-
-function dropWord(dropzoneId) {
-  if (!selectedWord) return;
-
-  const target = document
-    .getElementById(dropzoneId)
-    .querySelector("div[role='region']");
-  const existingWord = target.firstElementChild;
-
-  if (existingWord) {
-    // Move the existing word back to the original word list or swap positions
-    const originalParent = selectedWord.parentElement;
-
-    // Swap the selected word with the existing word
-    originalParent.appendChild(existingWord);
-  }
-
-  // Place the selected word in the dropzone
-  target.appendChild(selectedWord);
-
-  // Reset the selected word highlight
-  selectedWord.classList.remove("border-4", "border-blue-500");
-  selectedWord = null;
-}
-
-// Adding event listeners to existing words after being added to a dropzone
-document.addEventListener("click", (event) => {
-  if (event.target.classList.contains("activity-item")) {
-    const dropzone = event.target.closest(".dropzone");
-    if (dropzone) {
-      dropWord(dropzone.id);
-    }
-  }
-});
-
-function checkMatching() {
-  let correctCount = 0;
-
-  // Reset all dropzones to default background color
-  const dropzones = document.querySelectorAll(".dropzone");
-  dropzones.forEach((dropzone) => {
-    dropzone.classList.remove("bg-green-200", "bg-red-200");
-  });
-
-  // Loop through each item in the correctAnswers object
-  Object.keys(correctAnswers).forEach((item) => {
-    // Find the element with the corresponding data-activity-item
-    const wordElement = document.querySelector(
-      `.activity-item[data-activity-item='${item}']`
-    );
-
-    if (wordElement) {
-      // Find the dropzone that contains this word element
-      const parentDropzone = wordElement.closest(".dropzone");
-
-      // Check if the item's dropzone is the correct one
-      if (
-        parentDropzone &&
-        parentDropzone.querySelector("div[role='region']").id ===
-          correctAnswers[item]
-      ) {
-        correctCount++;
-        parentDropzone.classList.add("bg-green-200");
-      } else {
-        if (parentDropzone) {
-          parentDropzone.classList.add("bg-red-200");
-        }
-      }
-    }
-  });
-
-  // Update feedback
-  const feedback = document.getElementById("feedback");
-  if (correctCount === Object.keys(correctAnswers).length) {
-    feedback.textContent = "All answers are correct!";
-    feedback.classList.remove("text-red-500");
-    feedback.classList.add("text-green-500");
-  } else {
-    feedback.textContent = `You have ${correctCount} correct answers. Try again.`;
-    feedback.classList.remove("text-green-500");
-    feedback.classList.add("text-red-500");
-  }
+  highlightBoxes(false);
 }
