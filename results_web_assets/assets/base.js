@@ -201,6 +201,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Add keyboard event listeners for navigation
             document.addEventListener("keydown", handleKeyboardShortcuts);
+            initializePlayBar();
+            initializeAudioSpeed();
+
+
 
             // Unhide navigation and sidebar after a short delay to allow animations
             setTimeout(() => {
@@ -540,11 +544,53 @@ function toggleEli5Mode() {
     unhighlightAllElements();
 }
 
-function togglePlayBar() {
-    if (readAloudMode || eli5Mode) {
+function initializePlayBar() {
+    let playBarVisible = getCookie("playBarVisible");
+    if (playBarVisible === "true") {
         document.getElementById("play-bar").classList.remove("hidden");
     } else {
         document.getElementById("play-bar").classList.add("hidden");
+    }
+}
+
+function initializeAudioSpeed() {
+    let savedAudioSpeed = getCookie("audioSpeed");
+    if (savedAudioSpeed) {
+        audioSpeed = savedAudioSpeed;
+        document.getElementById("read-aloud-speed").textContent = audioSpeed + "x";
+
+        // Set the playback rate for currentAudio and eli5Audio if they exist
+        if (currentAudio) {
+            currentAudio.playbackRate = audioSpeed;
+        }
+        if (eli5Audio) {
+            eli5Audio.playbackRate = audioSpeed;
+        }
+
+        // Update button styles
+        document.querySelectorAll(".read-aloud-change-speed").forEach((btn) => {
+            let speedClass = Array.from(btn.classList).find((cls) =>
+                cls.startsWith("speed-")
+            );
+            let btnSpeed = speedClass.split("-").slice(1).join(".");
+            if (btnSpeed === audioSpeed) {
+                btn.classList.remove("bg-black", "text-gray-300");
+                btn.classList.add("bg-white", "text-black");
+            } else {
+                btn.classList.remove("bg-white", "text-black");
+                btn.classList.add("bg-black", "text-gray-300");
+            }
+        });
+    }
+}
+
+function togglePlayBar() {
+    if (readAloudMode || eli5Mode) {
+        document.getElementById("play-bar").classList.remove("hidden");
+        setCookie("playBarVisible", "true", 7); // Save state in cookie
+    } else {
+        document.getElementById("play-bar").classList.add("hidden");
+        setCookie("playBarVisible", "false", 7); // Save state in cookie
         stopAudio();
         unhighlightAllElements();
     }
@@ -616,6 +662,9 @@ function changeAudioSpeed(event) {
     );
     audioSpeed = speedClass.split("-").slice(1).join(".");
     document.getElementById("read-aloud-speed").textContent = audioSpeed + "x";
+
+    // Save the audio speed to a cookie
+    setCookie("audioSpeed", audioSpeed, 7);
 
     // Check if currentAudio or eli5Audio is not empty
     if (currentAudio || eli5Audio) {
